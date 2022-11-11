@@ -1,0 +1,131 @@
+[
+	{
+		"inputs": [],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "clients",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_base",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_target",
+				"type": "address"
+			},
+			{
+				"internalType": "uint64[][6]",
+				"name": "_fib",
+				"type": "uint64[][6]"
+			},
+			{
+				"internalType": "uint8[5]",
+				"name": "_fibDiv",
+				"type": "uint8[5]"
+			},
+			{
+				"internalType": "uint24",
+				"name": "_poolFee",
+				"type": "uint24"
+			},
+			{
+				"internalType": "uint256[]",
+				"name": "_timeStamps",
+				"type": "uint256[]"
+			},
+			{
+				"internalType": "uint64",
+				"name": "_sma",
+				"type": "uint64"
+			},
+			{
+				"internalType": "bool",
+				"name": "_mode",
+				"type": "bool"
+			}
+		],
+		"name": "createClientStrategy",
+		"outputs": [
+			{
+				"internalType": "contract ClientStrategy",
+				"name": "newStrategy",
+				"type": "address"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "client",
+				"type": "address"
+			}
+		],
+		"name": "getClientStrategy",
+		"outputs": [
+			{
+				"internalType": "contract ClientStrategy",
+				"name": "strategy",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "strategem",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "strategies",
+		"outputs": [
+			{
+				"internalType": "contract ClientStrategy",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+]
