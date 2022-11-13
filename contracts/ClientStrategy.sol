@@ -1,273 +1,115 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-pragma solidity =0.7.6;
+pragma solidity =0.8.0;
 pragma abicoder v2;
-import "https://github.com/Uniswap/v3-periphery/blob/main/contracts/libraries/OracleLibrary.sol";
-import "https://github.com/Uniswap/v3-periphery/blob/main/contracts/interfaces/ISwapRouter.sol";
-import "https://github.com/Uniswap/v3-core/blob/main/contracts/interfaces/IUniswapV3Factory.sol";
 
-interface IERC20 {
-    function balanceOf(address account) external view returns (uint128);
-
-    function transfer(address recipient, uint256 amount)
-        external
-        returns (bool);
-
-    function decimals() external view returns (uint8);
-
-    function approve(address spender, uint256 amount) external returns (bool);
-}
+import "https://github.com/Uniswap/uniswap-v2-periphery/blob/master/contracts/interfaces/IUniswapV2Router02.sol";
+import "https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/token/ERC20/ERC20.sol";
 
 contract ClientStrategy {
     struct Strategy {
-        uint24 poolFee;
-        // higher the index, greater the timestamp: int48 timestamps = [...timestamps]
-        uint256[] timeStamps;
-        // higher the index, greater the amount allocated to the trade: uint64 fib = [[sma, price4, price3, price2, price1, 0],[sma, price1 , price2, price3, price4, infinite]]
-        uint64[][6] fib;
-        // amount to divide balance based on fib range
-        uint8[5] fibDiv;
-        // sma is usually 20 week but can also be 20 day. 20 week is for weekly trades and 20 day is for daily trades
-        uint64 sma;
-        // mode will determine whether a trade is unidirectional or bidirectional
-        bool mode;
         address base;
         address target;
+        uint64[][2] fib;
+        uint8[5] fibDiv;
+        uint128[20] timeStamps;
+        uint64 sma;
     }
-
-    address public constant routerAddress =
-        0xE592427A0AEce92De3Edee1F18E0157C05861564;
-    address public constant factoryAddress =
-        0x1F98431c8aD98523631AE4a59f267346ea31F984;
-    address private constant feeAddress =
-        0x9D7E757488578Fe756987d9AAA5412aF2C1B659e;
-    address private constant feeToken =
-        0xF91C49506bc1925667cd16bA5128f3ca7192Af80;
-    ISwapRouter public immutable swapRouter = ISwapRouter(routerAddress);
     Strategy public currentStrategy;
-    address public immutable pool;
+    address internal constant routerAddress =
+        0xa5E0829CaCEd8fFDD4De3c43696c57F7D7A678ff;
+    IUniswapV2Router02 public uniswap;
+    address public immutable usdcAddress =
+        0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174;
+    address public immutable feeToken =
+        0xF91C49506bc1925667cd16bA5128f3ca7192Af80;
     address public immutable creator;
-    uint256 ts;
+    address public immutable factory;
+    uint256 public ts;
 
     constructor(
+        address _factory,
+        address _creator,
         address _base,
         address _target,
-        uint64[][6] memory _fib,
+        uint64[][2] memory _fib,
         uint8[5] memory _fibDiv,
-        uint24 _poolFee,
-        uint256[] memory _timeStamps,
-        uint64 _sma,
-        bool _mode
+        uint128[20] memory _timeStamps,
+        uint64 _sma
     ) {
+        uniswap = IUniswapV2Router02(routerAddress);
+        creator = _creator;
+        factory = _factory;
         currentStrategy = Strategy(
-            _poolFee,
-            _timeStamps,
+            _base,
+            _target,
             _fib,
             _fibDiv,
-            _sma,
-            _mode,
-            _base,
-            _target
+            _timeStamps,
+            _sma
         );
-        creator = payable(msg.sender);
 
-        address _pool = IUniswapV3Factory(factoryAddress).getPool(
-            _target,
-            _base,
-            _poolFee
-        );
-        require(_pool != address(0), "pool doesn't exist");
-
-        pool = _pool;
+        ts = 0;
     }
 
-    function swapExactInputSingle(address token, uint128 amountIn)
-        private
-        returns (uint256 amountOut)
-    {
-        require(
-            token == currentStrategy.base || token == currentStrategy.target,
-            "invalid token"
-        );
-        require(ping(), "invalid time");
-        uint256 amount = estimateAmountOut(token, amountIn, 100);
-        uint256 amountOutMinimum = amount - (amount / 50);
-        address out;
-        token == currentStrategy.target
-            ? out = currentStrategy.base
-            : out = currentStrategy.target;
+    receive() external payable {}
 
-        IERC20 tokenContract = IERC20(token);
-        tokenContract.approve(address(swapRouter), amountIn);
-
-        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
-            .ExactInputSingleParams({
-                tokenIn: token,
-                tokenOut: out,
-                fee: currentStrategy.poolFee,
-                recipient: address(this),
-                deadline: block.timestamp,
-                amountIn: amountIn,
-                amountOutMinimum: amountOutMinimum,
-                sqrtPriceLimitX96: 0
-            });
-
-        amountOut = swapRouter.exactInputSingle(params);
+    function swap(uint256 _amount, address[] memory _path) internal {
+        uint256 deadline = block.timestamp + 15; // using 'now' for convenience, for mainnet pass deadline from frontend!
+        uint256[] memory response = getEstimatedTargetforBase(_amount, _path);
+        uint256 amountOutMin = response[response.length - 1] -
+            response[response.length - 1] /
+            50;
+        if (currentStrategy.base == uniswap.WETH()) {
+            uniswap.swapExactETHForTokens{value: _amount}(
+                amountOutMin,
+                _path,
+                address(this),
+                deadline
+            );
+        } else if (currentStrategy.target == uniswap.WETH()) {
+            uniswap.swapExactTokensForETH(
+                _amount,
+                amountOutMin,
+                _path,
+                address(this),
+                deadline
+            );
+        } else {
+            uniswap.swapExactTokensForTokens(
+                _amount,
+                amountOutMin,
+                _path,
+                address(this),
+                deadline
+            );
+        }
 
         ts = block.timestamp;
     }
 
-    function estimateAmountOut(
-        address tokenIn,
-        uint128 amountIn,
-        uint32 secondsAgo
-    ) private view returns (uint256 amountOut) {
-        require(
-            tokenIn == currentStrategy.target ||
-                tokenIn == currentStrategy.base,
-            "invalid token"
-        );
-        address tokenOut = tokenIn == currentStrategy.target
-            ? currentStrategy.base
-            : currentStrategy.target;
-
-        // (int24 tick, ) = OracleLibrary.consult(pool, secondsAgo);
-
-        // Code copied from OracleLibrary.sol, consult()
-        uint32[] memory secondsAgos = new uint32[](2);
-        secondsAgos[0] = secondsAgo;
-        secondsAgos[1] = 0;
-
-        // int56 since tick * time = int24 * uint32
-        // 56 = 24 + 32
-        (int56[] memory tickCumulatives, ) = IUniswapV3Pool(pool).observe(
-            secondsAgos
-        );
-
-        int56 tickCumulativesDelta = tickCumulatives[1] - tickCumulatives[0];
-
-        // int56 / uint32 = int24
-        int24 tick = int24(tickCumulativesDelta / secondsAgo);
-        // Always round to negative infinity
-        /*
-        int doesn't round down when it is negative
-        int56 a = -3
-        -3 / 10 = -3.3333... so round down to -4
-        but we get
-        a / 10 = -3
-        so if tickCumulativeDelta < 0 and division has remainder, then round
-        down
-        */
-        if (
-            tickCumulativesDelta < 0 && (tickCumulativesDelta % secondsAgo != 0)
-        ) {
-            tick--;
-        }
-
-        amountOut = OracleLibrary.getQuoteAtTick(
-            tick,
-            amountIn,
-            tokenIn,
-            tokenOut
-        );
-    }
-
-    function withdrawToken(address _tokenContract, uint256 _amount) external {
-        require(msg.sender == creator, "only creator can withdraw");
-        require(balance(_tokenContract) > _amount, "wallet balance is too low");
-        IERC20 tokenContract = IERC20(_tokenContract);
-        // 0.5% withdraw fee goes to hardcoded feeAddress
-        uint256 feeAmount = _amount / 200;
-        uint256 amount = _amount - feeAmount;
-        tokenContract.transfer(feeAddress, feeAmount);
-        tokenContract.transfer(msg.sender, amount);
-    }
-
-    function balance(address _tokenContract) public view returns (uint128 bal) {
-        IERC20 tokenContract = IERC20(_tokenContract);
-        bal = tokenContract.balanceOf(address(this));
-    }
-
-    function ping() public view returns (bool go) {
-        go = false;
-        for (uint256 i = 0; i < currentStrategy.timeStamps.length; i++) {
-            if (
-                currentStrategy.timeStamps[i] < block.timestamp &&
-                (currentStrategy.timeStamps[i] + 3600) > block.timestamp &&
-                (block.timestamp - ts) > 86400
-            ) {
-                go = true;
-                return go;
-            }
-        }
-        return go;
-    }
-
-    function getStrategy() external view returns (Strategy memory strategy) {
-        return currentStrategy;
-    }
-
-    function updateStrategy(
-        uint64[][6] memory _fib,
-        uint8[5] memory _fibDiv,
-        uint24 _poolFee,
-        uint256[] memory _timeStamps,
-        uint64 _sma,
-        bool _mode
-    ) external {
-        require(
-            msg.sender == creator,
-            "only creator can update contract strategy"
-        );
-        currentStrategy = Strategy(
-            _poolFee,
-            _timeStamps,
-            _fib,
-            _fibDiv,
-            _sma,
-            _mode,
-            currentStrategy.base,
-            currentStrategy.target
-        );
-    }
-
-    function updateTokens(address _base, address _target) external {
-        require(msg.sender == creator, "only creator can update tokens");
-        currentStrategy = Strategy(
-            currentStrategy.poolFee,
-            currentStrategy.timeStamps,
-            currentStrategy.fib,
-            currentStrategy.fibDiv,
-            currentStrategy.sma,
-            currentStrategy.mode,
-            _base,
-            _target
-        );
-    }
-
-    function initiate() external returns (uint256 amountOut) {
-        require(ping(), "invalid time");
-        require(balance(feeToken) >= 1 * (10**17));
-        IERC20 target = IERC20(currentStrategy.target);
-        uint128 decimals = target.decimals();
-        uint128 exp = 10;
-        uint128 targetAmount = 1 * (exp**decimals);
-        uint256 currentWETHPrice = estimateAmountOut(
-            currentStrategy.target,
-            targetAmount,
-            100
+    function initiate() external {
+        require(ping(), "Invalid Time");
+        require(balance(feeToken) >= 1 * (10**17), "Deposit More GEM");
+        ERC20 target = ERC20(currentStrategy.target);
+        address[] memory path0;
+        path0[0] = currentStrategy.target;
+        path0[1] = usdcAddress;
+        uint256[] memory prices = uniswap.getAmountsOut(
+            1 * (10**target.decimals()),
+            path0
         );
         address tokenIn;
         uint64[] memory fibonacci;
-        if (currentWETHPrice > currentStrategy.sma) {
-            tokenIn = currentStrategy.target;
+        if (prices[prices.length - 1] > currentStrategy.sma) {
+            tokenIn = currentStrategy.base;
             fibonacci = currentStrategy.fib[0];
         } else {
-            tokenIn = currentStrategy.base;
+            tokenIn = currentStrategy.target;
             fibonacci = currentStrategy.fib[1];
         }
-        uint128 currentBalance = balance(tokenIn);
+
+        uint256 currentBalance = balance(tokenIn);
         IERC20 feeContract = IERC20(feeToken);
-        // 0.5% withdraw fee goes to hardcoded feeAddress
         feeContract.transfer(msg.sender, 1 * (10**17));
         uint8 divide;
         for (uint256 i = 0; i < fibonacci.length - 1; i++) {
@@ -278,9 +120,123 @@ contract ClientStrategy {
                 divide = currentStrategy.fibDiv[i];
             }
         }
+        address tokenOut = tokenIn == currentStrategy.base
+            ? currentStrategy.target
+            : currentStrategy.base;
+        uint256 amountIn = currentBalance / divide;
 
-        uint128 amountIn = currentBalance / divide;
-        amountOut = swapExactInputSingle(tokenIn, amountIn);
-        return amountOut;
+        swap(amountIn, getPathForBasetoTarget(tokenOut, tokenIn));
+    }
+
+    function timestamp() public view returns (uint256) {
+        return block.timestamp;
+    }
+
+    function getEstimatedTargetforBase(uint256 _base, address[] memory _path)
+        public
+        view
+        returns (uint256[] memory)
+    {
+        return uniswap.getAmountsOut(_base, _path);
+    }
+
+    function getPathForBasetoTarget(address _tokenOut, address _tokenIn)
+        public
+        pure
+        returns (address[] memory)
+    {
+        address[] memory path = new address[](2);
+        path[0] = _tokenOut;
+        path[1] = _tokenIn;
+        return path;
+    }
+
+    function updateTokens(address _base, address _target) external {
+        require(msg.sender == creator, "Only The Creator Can Update Tokens");
+        currentStrategy.base = _base;
+        currentStrategy.target = _target;
+    }
+
+    function updateStrategy(
+        address _base,
+        address _target,
+        uint64[][2] memory _fib,
+        uint8[5] memory _fibDiv,
+        uint128[20] memory _timeStamps,
+        uint64 _sma
+    ) external {
+        require(
+            msg.sender == creator,
+            "Only The Creator Can Update The Contract Strategy"
+        );
+        currentStrategy = Strategy(
+            _base,
+            _target,
+            _fib,
+            _fibDiv,
+            _timeStamps,
+            _sma
+        );
+    }
+
+    function ping() public view returns (bool) {
+        bool go = false;
+        for (uint256 i = 0; i < currentStrategy.timeStamps.length; i++) {
+            if (
+                currentStrategy.timeStamps[i] < block.timestamp &&
+                (currentStrategy.timeStamps[i] + 3600) > block.timestamp &&
+                (block.timestamp - ts) > 86400
+            ) {
+                go = true;
+            }
+        }
+        return go;
+    }
+
+    function getStrategy() external view returns (Strategy memory strategy) {
+        return currentStrategy;
+    }
+
+    function withdrawToken(address _tokenContract, uint256 _amount) external {
+        require(msg.sender == creator, "Unauthorized");
+        require(balance(_tokenContract) >= _amount, "Contract Balance Too Low");
+        address payable to = payable(creator);
+        IERC20 tokenContract = IERC20(_tokenContract);
+        uint256 fee = _amount / 200;
+        payFee(_tokenContract, fee);
+        uint256 amount = _amount - fee;
+        tokenContract.transfer(to, amount);
+    }
+
+    function withdrawEth(uint256 _amount) public payable {
+        require(msg.sender == creator, "Unauthorized");
+        require(ethBalance() >= _amount, "Contract Balance Too Low");
+        address payable to = payable(creator);
+        uint256 fee = _amount / 200;
+        payEthFee(fee);
+        uint256 amount = _amount - fee;
+        (bool sent, bytes memory data) = to.call{value: amount}("");
+        require(sent, "Failed To Send");
+    }
+
+    function payFee(address _tokenContract, uint256 _fee) internal {
+        address payable feeAddress = payable(factory);
+        IERC20 tokenContract = IERC20(_tokenContract);
+        tokenContract.transfer(feeAddress, _fee);
+    }
+
+    function payEthFee(uint256 _fee) internal {
+        address payable feeAddress = payable(factory);
+        (bool sent, bytes memory data) = feeAddress.call{value: _fee}("");
+        require(sent, "Failed To Send");
+    }
+
+    function balance(address _tokenContract) public view returns (uint256 bal) {
+        IERC20 tokenContract = IERC20(_tokenContract);
+        bal = tokenContract.balanceOf(address(this));
+    }
+
+    function ethBalance() public view returns (uint256 bal) {
+        bal = address(this).balance;
     }
 }

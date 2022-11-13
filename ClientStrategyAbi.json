@@ -1,0 +1,398 @@
+[
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_factory",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_creator",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_base",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_target",
+				"type": "address"
+			},
+			{
+				"internalType": "uint64[][2]",
+				"name": "_fib",
+				"type": "uint64[][2]"
+			},
+			{
+				"internalType": "uint8[5]",
+				"name": "_fibDiv",
+				"type": "uint8[5]"
+			},
+			{
+				"internalType": "uint128[20]",
+				"name": "_timeStamps",
+				"type": "uint128[20]"
+			},
+			{
+				"internalType": "uint64",
+				"name": "_sma",
+				"type": "uint64"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_tokenContract",
+				"type": "address"
+			}
+		],
+		"name": "balance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "bal",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "creator",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "currentStrategy",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "base",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "target",
+				"type": "address"
+			},
+			{
+				"internalType": "uint64",
+				"name": "sma",
+				"type": "uint64"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "ethBalance",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "bal",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "factory",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "feeToken",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_base",
+				"type": "uint256"
+			},
+			{
+				"internalType": "address[]",
+				"name": "_path",
+				"type": "address[]"
+			}
+		],
+		"name": "getEstimatedTargetforBase",
+		"outputs": [
+			{
+				"internalType": "uint256[]",
+				"name": "",
+				"type": "uint256[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_tokenOut",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_tokenIn",
+				"type": "address"
+			}
+		],
+		"name": "getPathForBasetoTarget",
+		"outputs": [
+			{
+				"internalType": "address[]",
+				"name": "",
+				"type": "address[]"
+			}
+		],
+		"stateMutability": "pure",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getStrategy",
+		"outputs": [
+			{
+				"components": [
+					{
+						"internalType": "address",
+						"name": "base",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "target",
+						"type": "address"
+					},
+					{
+						"internalType": "uint64[][2]",
+						"name": "fib",
+						"type": "uint64[][2]"
+					},
+					{
+						"internalType": "uint8[5]",
+						"name": "fibDiv",
+						"type": "uint8[5]"
+					},
+					{
+						"internalType": "uint128[20]",
+						"name": "timeStamps",
+						"type": "uint128[20]"
+					},
+					{
+						"internalType": "uint64",
+						"name": "sma",
+						"type": "uint64"
+					}
+				],
+				"internalType": "struct ClientStrategy.Strategy",
+				"name": "strategy",
+				"type": "tuple"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "initiate",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "ping",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "timestamp",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "ts",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "uniswap",
+		"outputs": [
+			{
+				"internalType": "contract IUniswapV2Router02",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_base",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_target",
+				"type": "address"
+			},
+			{
+				"internalType": "uint64[][2]",
+				"name": "_fib",
+				"type": "uint64[][2]"
+			},
+			{
+				"internalType": "uint8[5]",
+				"name": "_fibDiv",
+				"type": "uint8[5]"
+			},
+			{
+				"internalType": "uint128[20]",
+				"name": "_timeStamps",
+				"type": "uint128[20]"
+			},
+			{
+				"internalType": "uint64",
+				"name": "_sma",
+				"type": "uint64"
+			}
+		],
+		"name": "updateStrategy",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_base",
+				"type": "address"
+			},
+			{
+				"internalType": "address",
+				"name": "_target",
+				"type": "address"
+			}
+		],
+		"name": "updateTokens",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "usdcAddress",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "_amount",
+				"type": "uint256"
+			}
+		],
+		"name": "withdrawEth",
+		"outputs": [],
+		"stateMutability": "payable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "_tokenContract",
+				"type": "address"
+			},
+			{
+				"internalType": "uint256",
+				"name": "_amount",
+				"type": "uint256"
+			}
+		],
+		"name": "withdrawToken",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"stateMutability": "payable",
+		"type": "receive"
+	}
+]
